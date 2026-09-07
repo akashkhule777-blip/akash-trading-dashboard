@@ -1,138 +1,167 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AKASH KHULE - LIVE TRADING</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<title>Akash Trading - Live</title>
+<script src="https://s3.tradingview.com/tv.js"></script>
+<style>
+body{background:#0f172a;color:white;font-family:Arial;padding:10px}
+.card{background:#1e293b;padding:15px;border-radius:12px;margin-bottom:12px}
+input{width:100%;padding:10px;margin:6px 0;border-radius:8px;border:none}
+button{width:100%;padding:12px;border-radius:8px;border:none;font-weight:bold;cursor:pointer}
+.btn-blue{background:#2563eb;color:white}
+.btn-green{background:#16a34a;color:white;margin-top:8px}
+.holding{border-bottom:1px solid #334155;padding:8px 0;display:flex;justify-content:space-between}
+.pnl-plus{color:#22c55e;font-weight:bold}
+.pnl-minus{color:#ef4444;font-weight:bold}
+</style>
 </head>
-<body class="bg-[#0f1115] text-white p-3">
-<div class="max-w-6xl mx-auto">
-<h1 class="text-2xl font-bold text-center mb-4">AKASH KHULE - LIVE TRADING</h1>
+<body>
+<h2>📈 Akash Live Trading</h2>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-<div class="bg-[#1c1f26] p-4 rounded-xl">
-<h2 class="font-bold mb-2">Angel One Login</h2>
-<input id="api_key" placeholder="API Key" class="w-full p-2 mb-2 bg-black rounded text-white">
-<input id="client_id" placeholder="Client ID" class="w-full p-2 mb-2 bg-black rounded text-white">
-<input id="password" placeholder="Password (MPIN)" class="w-full p-2 mb-2 bg-black rounded text-white">
-<input id="totp_secret" placeholder="TOTP Secret" class="w-full p-2 mb-2 bg-black rounded text-white">
-<button id="connectBtn" onclick="connect()" class="w-full bg-blue-600 py-3 rounded font-bold">CONNECT</button>
-<div id="status" class="mt-2 text-xs p-2 bg-yellow-600 text-black rounded">Backend waking up... 60 sec thamba</div>
+<div class="card" id="loginCard">
+<h3>Angel One Connect</h3>
+<input id="api_key" placeholder="API Key">
+<input id="client_id" placeholder="Client ID (ex: A123456)">
+<input id="password" placeholder="MPIN / Password">
+<input id="totp_secret" placeholder="TOTP Secret">
+<button class="btn-blue" onclick="connect()">CONNECT</button>
+<p id="status" style="margin-top:10px;color:#93c5fd"></p>
 </div>
 
-<div class="bg-[#1c1f26] p-4 rounded-xl">
-<h2 class="font-bold mb-2">Portfolio</h2>
-<div>Holdings: <span id="holdings">--</span></div>
-<div>Positions: <span id="positions">--</span></div>
-<div class="text-green-400">PnL Today: <span id="pnl">₹ 0.00</span></div>
-<button onclick="loadData()" class="w-full bg-green-600 mt-4 py-2 rounded">Refresh Data</button>
+<div class="card">
+<h3>Backend: <span id="backendStatus">Checking...</span></h3>
+<div id="chart" style="height:350px"></div>
 </div>
 
-<div class="bg-[#1c1f26] p-4 rounded-xl">
-<h2 class="font-bold mb-2">Nifty 50 Live</h2>
-<div id="niftyPrice" class="text-xl text-green-400">Loading...</div>
-<div class="text-xs mt-2">Backend: akash-trading-backend.onrender.com</div>
-<div class="text-xs">Auto wake enabled</div>
-</div>
-</div>
-
-<div class="bg-[#1c1f26] p-2 rounded-xl h-[400px]">
-<div id="tradingview_widget" class="h-full"></div>
+<div class="card">
+<h3>Portfolio - PnL Today: <span id="pnlToday">₹0.00</span></h3>
+<button class="btn-green" onclick="refreshData()">🔄 Refresh Data</button>
+<h4 style="margin-top:15px">Holdings:</h4>
+<div id="holdingsList">-- Connect kara --</div>
+<h4 style="margin-top:15px">Positions:</h4>
+<div id="positionsList">--</div>
 </div>
 
-<pre id="log" class="bg-black text-lime-400 p-2 mt-3 text-xs overflow-auto"></pre>
-</div>
-
-<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 <script>
-const BACKEND = "https://akash-trading-backend.onrender.com";
-let AUTH_TOKEN = "";
+const BACKEND_URL = "https://akash-trading-backend.onrender.com";
+let authData = null;
 
-async function wakeBackend() {
-  const s = document.getElementById('status');
-  s.innerText = "Backend waking... 30 sec...";
-  try {
-    await fetch(BACKEND + "/", {mode: 'no-cors'});
-    const r = await fetch(BACKEND + "/ip").then(x=>x.text()).catch(()=> "LIVE");
-    s.innerText = "Backend LIVE! " + r + " | Aata CONNECT daba";
-    s.className = "mt-2 text-xs p-2 bg-green-500 text-white rounded";
-    document.getElementById('niftyPrice').innerText = "Backend Connected ✅";
-  } catch(e) {
-    s.innerText = "Backend waking... 2nd try... 60 sec thamba";
-    setTimeout(wakeBackend, 5000);
-  }
+async function checkBackend(){
+ try{
+  let r = await fetch(BACKEND_URL);
+  let t = await r.text();
+  document.getElementById('backendStatus').innerHTML = "Connected ✅ - " + t.substring(0,30);
+  document.getElementById('backendStatus').style.color = "#22c55e";
+ }catch(e){
+  document.getElementById('backendStatus').innerHTML = "Backend waking up... 50 sec thamba";
+  document.getElementById('backendStatus').style.color = "#facc15";
+ }
+ loadChart();
 }
-wakeBackend();
+checkBackend();
 
-async function connect() {
-  const btn = document.getElementById('connectBtn');
-  const s = document.getElementById('status');
-  const log = document.getElementById('log');
-  btn.innerText = "CONNECTING...";
-  s.innerText = "Logging in to Angel One...";
-
-  try {
-    const res = await fetch(BACKEND + "/login", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({
-        api_key: document.getElementById('api_key').value.trim(),
-        client_id: document.getElementById('client_id').value.trim(),
-        password: document.getElementById('password').value.trim(),
-        totp_secret: document.getElementById('totp_secret').value.trim()
-      })
-    });
-    const data = await res.json();
-    log.textContent = JSON.stringify(data, null, 2);
-
-    if(data.status === true || data.data) {
-      AUTH_TOKEN = data.data?.jwtToken || data.data?.jwt_token || "";
-      localStorage.setItem("ak_token", AUTH_TOKEN);
-      localStorage.setItem("ak_api_key", document.getElementById('api_key').value.trim());
-      s.innerText = "Connected! ✅ Data loading...";
-      s.className = "mt-2 text-xs p-2 bg-green-600 text-white rounded";
-      btn.innerText = "CONNECTED ✅";
-      loadData();
-    } else {
-      s.innerText = "Error: " + (data.message || data.error || "Login failed");
-      s.className = "mt-2 text-xs p-2 bg-red-600 text-white rounded";
-      btn.innerText = "CONNECT";
-    }
-  } catch(err) {
-    s.innerText = "Backend zopayla aahe, 60 sec ne parat CONNECT daba";
-    log.textContent = err.toString();
-    btn.innerText = "CONNECT";
-  }
-}
-
-async function loadData() {
-  try {
-    const api_key = document.getElementById('api_key').value || localStorage.getItem("ak_api_key");
-    const token = localStorage.getItem("ak_token");
-    if(!token) return;
-
-    const h = await fetch(BACKEND + "/holdings", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({api_key, jwtToken: token})
-    }).then(r=>r.json());
-
-    document.getElementById('holdings').innerText = (h.data?.holdings?.length || 0) + " stocks";
-    document.getElementById('pnl').innerText = "₹ " + (h.data?.totalandrealizedprofit || "0.00");
-    document.getElementById('log').textContent = "Holdings: " + JSON.stringify(h).substring(0,500);
-  } catch(e) {}
-}
-
-new TradingView.widget({
+function loadChart(){
+ new TradingView.widget({
   "autosize": true,
   "symbol": "NSE:NIFTY",
-  "interval": "D",
+  "interval": "15",
   "timezone": "Asia/Kolkata",
   "theme": "dark",
   "style": "1",
-  "container_id": "tradingview_widget"
-});
+  "locale": "in",
+  "container_id": "chart"
+ });
+}
+
+async function connect(){
+ const api_key = document.getElementById('api_key').value.trim();
+ const client_id = document.getElementById('client_id').value.trim();
+ const password = document.getElementById('password').value.trim();
+ const totp_secret = document.getElementById('totp_secret').value.trim();
+ if(!api_key||!client_id||!password||!totp_secret){alert("Sagla bhara!");return;}
+ document.getElementById('status').innerText = "Connecting... 10 sec thamba...";
+ try{
+  let res = await fetch(BACKEND_URL+'/login', {
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body: JSON.stringify({api_key, client_id, password, totp_secret})
+  });
+  let data = await res.json();
+  console.log(data);
+  if(data.status === false){ document.getElementById('status').innerText = "Error: " + (data.message || data.error); return; }
+  let jwt = data.data.jwtToken || data.data.jwt_token || data.data.accessToken;
+  let refresh = data.data.refreshToken;
+  authData = {api_key, jwtToken: jwt, refreshToken: refresh};
+  localStorage.setItem('akash_auth', JSON.stringify(authData));
+  localStorage.setItem('akash_creds', JSON.stringify({api_key, client_id, password, totp_secret}));
+  document.getElementById('status').innerText = "CONNECTED ✅ Holdings load hotay...";
+  document.getElementById('status').style.color = "#22c55e";
+  refreshData();
+ }catch(e){
+  document.getElementById('status').innerText = "Error: " + e.message + " - Backend wake up hotay, 1 min nantar parat daba";
+ }
+}
+
+async function refreshData(){
+ if(!authData){
+  let saved = localStorage.getItem('akash_auth');
+  if(saved) authData = JSON.parse(saved);
+  else {alert("Pahile CONNECT daba!");return;}
+ }
+ document.getElementById('holdingsList').innerHTML = "Loading...";
+ try{
+  let res = await fetch(BACKEND_URL+'/holdings', {
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body: JSON.stringify(authData)
+  });
+  let data = await res.json();
+  console.log("Holdings data", data);
+  let holdings = data.holdings?.data || data.holdings?.data?.holdings || [];
+  let positions = data.positions?.data || [];
+  
+  // Holdings show
+  let hHtml = "";
+  let totalPnl = 0;
+  if(holdings.length==0) hHtml = "Kahi holdings nahi / Market band aahe";
+  holdings.forEach(h=>{
+   let pnl = parseFloat(h.realisedquantity ? h.pnl || 0 : h.pnl || 0) || parseFloat(h.profitandloss || 0) || 0;
+   totalPnl += pnl;
+   let ltp = h.ltp || h.lastprice || 0;
+   hHtml += `<div class="holding"><span><b>${h.tradingsymbol}</b> (${h.quantity}) @ ${ltp}</span><span class="${pnl>=0?'pnl-plus':'pnl-minus'}">₹${pnl.toFixed(2)}</span></div>`;
+  });
+  document.getElementById('holdingsList').innerHTML = hHtml;
+  
+  // Positions show
+  let pHtml = "";
+  let todayPnl = 0;
+  if(positions.length==0) pHtml = "Aaj kahi position nahi";
+  positions.forEach(p=>{
+   let pnl = parseFloat(p.pnl || 0);
+   todayPnl += pnl;
+   pHtml += `<div class="holding"><span><b>${p.tradingsymbol}</b> Qty:${p.netqty}</span><span class="${pnl>=0?'pnl-plus':'pnl-minus'}">₹${pnl.toFixed(2)}</span></div>`;
+  });
+  document.getElementById('positionsList').innerHTML = pHtml;
+  document.getElementById('pnlToday').innerText = `₹${(totalPnl+todayPnl).toFixed(2)}`;
+  document.getElementById('pnlToday').className = (totalPnl+todayPnl)>=0 ? 'pnl-plus' : 'pnl-minus';
+  
+ }catch(e){
+  document.getElementById('holdingsList').innerHTML = "Error: " + e.message;
+ }
+}
+
+// Auto fill saved creds
+window.onload = ()=>{
+ let c = localStorage.getItem('akash_creds');
+ if(c){
+  c = JSON.parse(c);
+  document.getElementById('api_key').value = c.api_key||"";
+  document.getElementById('client_id').value = c.client_id||"";
+  document.getElementById('password').value = c.password||"";
+  document.getElementById('totp_secret').value = c.totp_secret||"";
+ }
+}
 </script>
 </body>
 </html>
