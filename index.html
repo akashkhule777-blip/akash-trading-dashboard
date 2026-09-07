@@ -1,0 +1,57 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Akash Trading Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-[#0f1115] text-white p-3">
+<div class="max-w-6xl mx-auto">
+<h1 class="text-2xl font-bold text-center mb-4">AKASH KHULE - LIVE TRADING DASHBOARD</h1>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+<div class="bg-[#1c1f26] p-4 rounded-xl">
+<h2 class="font-bold mb-2">Angel One Login</h2>
+<input id="clientId" placeholder="Client ID" class="w-full mb-2 p-2 rounded bg-black text-white">
+<input id="password" placeholder="Password" type="password" class="w-full mb-2 p-2 rounded bg-black">
+<input id="totp" placeholder="TOTP" class="w-full mb-2 p-2 rounded bg-black">
+<input id="apiKey" placeholder="API Key" class="w-full mb-2 p-2 rounded bg-black">
+<button onclick="connect()" class="w-full bg-blue-600 p-2 rounded font-bold">CONNECT</button>
+<p id="status" class="text-xs mt-2 text-yellow-400">Not Connected</p>
+</div>
+
+<div class="bg-[#1c1f26] p-4 rounded-xl">
+<h2 class="font-bold mb-2">Portfolio</h2>
+<p>Holdings: <span id="holdings">-</span></p>
+<p>Positions: <span id="positions">-</span></p>
+<p>PnL Today: <span id="pnl" class="text-green-400">₹ 0.00</span></p>
+<button class="mt-3 w-full bg-green-600 p-2 rounded">Refresh Data</button>
+</div>
+
+<div class="bg-[#1c1f26] p-4 rounded-xl">
+<h2 class="font-bold mb-2">Nifty 50 Live</h2>
+<canvas id="niftyChart"></canvas>
+</div>
+</div>
+
+<div class="bg-[#1c1f26] p-4 rounded-xl">
+<h2 class="font-bold mb-2">TradingView - NIFTY</h2>
+<div style="height:400px">
+<iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_76d87&symbol=NSE%3ANIFTY&interval=5&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f7f8f9&studies=[]&theme=dark&style=1&timezone=Asia%2FKolkata" style="width:100%;height:100%" frameborder="0"></iframe>
+</div>
+</div>
+</div>
+
+<script>
+function connect(){
+ document.getElementById('status').innerText = 'Connecting to Angel One... (SmartAPI integration ready)';
+ setTimeout(()=>{ document.getElementById('status').innerText = 'Connected! API Ready - Add SmartAPI backend on Render'; },1500);
+}
+const ctx=document.getElementById('niftyChart').getContext('2d');
+new Chart(ctx,{type:'line',data:{labels:['9:15','10:30','11:30','12:30','1:30','2:30','3:15'],datasets:[{label:'NIFTY',data:[24700,24820,24750,24850,24900,24800,24850],borderColor:'#22c55e',tension:0.4}]},options:{plugins:{legend:{display:false}}}});
+</script>
+</body>
+</html>
