@@ -16,7 +16,7 @@
 <div class="bg-[#1c1f26] p-4 rounded-xl">
 <h2 class="font-bold mb-2">Angel One Login</h2>
 <input id="clientId" placeholder="Client ID" class="w-full mb-2 p-2 rounded bg-black text-white">
-<input id="password" placeholder="Password" type="password" class="w-full mb-2 p-2 rounded bg-black">
+<input id="password" type="password" placeholder="Password" class="w-full mb-2 p-2 rounded bg-black">
 <input id="totp" placeholder="TOTP" class="w-full mb-2 p-2 rounded bg-black">
 <input id="apiKey" placeholder="API Key" class="w-full mb-2 p-2 rounded bg-black">
 <button onclick="connect()" class="w-full bg-blue-600 p-2 rounded font-bold">CONNECT</button>
@@ -25,10 +25,10 @@
 
 <div class="bg-[#1c1f26] p-4 rounded-xl">
 <h2 class="font-bold mb-2">Portfolio</h2>
-<p>Holdings: <span id="holdings">-</span></p>
-<p>Positions: <span id="positions">-</span></p>
+<p>Holdings: <span id="holdings">--</span></p>
+<p>Positions: <span id="positions">--</span></p>
 <p>PnL Today: <span id="pnl" class="text-green-400">₹ 0.00</span></p>
-<button class="mt-3 w-full bg-green-600 p-2 rounded">Refresh Data</button>
+<button onclick="refreshData()" class="mt-3 w-full bg-green-600 p-2 rounded">Refresh Data</button>
 </div>
 
 <div class="bg-[#1c1f26] p-4 rounded-xl">
@@ -40,18 +40,48 @@
 <div class="bg-[#1c1f26] p-4 rounded-xl">
 <h2 class="font-bold mb-2">TradingView - NIFTY</h2>
 <div style="height:400px">
-<iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_76d87&symbol=NSE%3ANIFTY&interval=5&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f7f8f9&studies=[]&theme=dark&style=1&timezone=Asia%2FKolkata" style="width:100%;height:100%" frameborder="0"></iframe>
+<iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_76d87&symbol=NSE%3ANIFTY&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=dark&style=1&timezone=Asia%2FKolkata&studies_overrides={}&overrides={}&enabled_features=[]&disabled_features=[]&locale=en&utm_source=akash-dashboard" style="width:100%;height:100%"></iframe>
 </div>
 </div>
 </div>
 
 <script>
-function connect(){
- document.getElementById('status').innerText = 'Connecting to Angel One... (SmartAPI integration ready)';
- setTimeout(()=>{ document.getElementById('status').innerText = 'Connected! API Ready - Add SmartAPI backend on Render'; },1500);
+const BACKEND_URL = "https://akash-trading-backend.onrender.com";
+
+async function connect(){
+  let cid = document.getElementById('clientId').value;
+  let pwd = document.getElementById('password').value;
+  let totp = document.getElementById('totp').value;
+  let api = document.getElementById('apiKey').value;
+  document.getElementById('status').innerText = 'Connecting to Angel One...';
+  try{
+    let res = await fetch(BACKEND_URL + '/api/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({client_id: cid, password: pwd, totp: totp, api_key: api})
+    });
+    let data = await res.json();
+    if(data.status){
+      document.getElementById('status').innerText = 'Connected! API Ready';
+      refreshData();
+    } else {
+      document.getElementById('status').innerText = 'Failed: ' + data.message;
+    }
+  }catch(e){
+    document.getElementById('status').innerText = 'Backend offline! Check Render';
+  }
 }
+
+async function refreshData(){
+  let res = await fetch(BACKEND_URL + '/api/portfolio');
+  let data = await res.json();
+  document.getElementById('holdings').innerText = data.holdings || '0';
+  document.getElementById('positions').innerText = data.positions || '0';
+  document.getElementById('pnl').innerText = '₹ ' + (data.pnl || '0.00');
+}
+
 const ctx=document.getElementById('niftyChart').getContext('2d');
-new Chart(ctx,{type:'line',data:{labels:['9:15','10:30','11:30','12:30','1:30','2:30','3:15'],datasets:[{label:'NIFTY',data:[24700,24820,24750,24850,24900,24800,24850],borderColor:'#22c55e',tension:0.4}]},options:{plugins:{legend:{display:false}}}});
+new Chart(ctx,{type:'line',data:{labels:['9:15','10:30','11:30','12:30','1:30','2:30','3:15'],datasets:[{label:'NIFTY',data:[24800,24850,24900,24870,24920,24950,24980],borderColor:'#00ff88'}]}});
 </script>
 </body>
 </html>
